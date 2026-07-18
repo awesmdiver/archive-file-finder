@@ -88,18 +88,21 @@ Write-Host ""
 # ---- PowerShell 7 (optional) ----
 # Windows PowerShell 5.1 (built into every Windows install, so this is never
 # "missing" outright) implements the folder-browser popup with a decades-old
-# dialog that's always light, no matter your Windows theme. PowerShell 7 uses
-# a modern one that actually follows your Windows dark/light setting. Not
-# required - the app falls back to the old picker automatically if this
-# isn't installed - just nicer if you use dark mode.
+# dialog: a small tree-view picker that's always light, no matter your
+# Windows theme. PowerShell 7 uses the modern Explorer-style picker instead
+# - the same one every current Windows app uses - which also actually
+# follows your Windows dark/light setting. Not required - the app falls
+# back to the old picker automatically if this isn't installed - just
+# nicer if you use dark mode, or just prefer the modern dialog either way.
 $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
 if ($pwsh) {
     $pwshVersion = (pwsh -Command '$PSVersionTable.PSVersion.ToString()')
-    Write-Host "[OK] PowerShell 7 is already installed ($pwshVersion) - the folder picker will match your Windows theme." -ForegroundColor Green
+    Write-Host "[OK] PowerShell 7 is already installed ($pwshVersion) - the folder picker will be the modern one, matching your Windows theme." -ForegroundColor Green
 }
 elseif ($haveWinget) {
     Write-Host "[OPTIONAL] PowerShell 7 was not found. Without it, the folder-browse popup will"
-    Write-Host "           always be light-themed, even if the rest of this app is in dark mode."
+    Write-Host "           use an older, small tree-view dialog that's always light-themed,"
+    Write-Host "           instead of the modern Explorer-style picker."
     $answer = Read-Host "Install PowerShell 7 now via winget? (Y/N)"
     if ($answer -match '^[Yy]') {
         Write-Host "Installing PowerShell 7..."
@@ -120,7 +123,8 @@ elseif ($haveWinget) {
 }
 else {
     Write-Host "[OPTIONAL] PowerShell 7 was not found, and winget isn't available to install it automatically."
-    Write-Host "The app still works fine without it - the folder-browse popup will just always be light-themed."
+    Write-Host "The app still works fine without it - the folder-browse popup will just use the"
+    Write-Host "older, light-only tree-view dialog instead of the modern Explorer-style one."
 }
 Write-Host ""
 

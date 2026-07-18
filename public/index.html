@@ -28,17 +28,10 @@
 <section class="panel" id="settingsPanel">
   <h2>Settings</h2>
   <div class="field-row">
-    <label for="scanFolder">Scan folder (compressed mods)</label>
+    <label for="scanFolder">Scan folder (download directory, not staging)</label>
     <div class="path-row">
       <input type="text" id="scanFolder" placeholder="e.g. D:\Downloads\SkyrimSE">
       <button id="browseScanFolderBtn" type="button" class="secondary">Browse&hellip;</button>
-    </div>
-  </div>
-  <div class="field-row">
-    <label for="outputFolder">Default extraction destination</label>
-    <div class="path-row">
-      <input type="text" id="outputFolder" placeholder="e.g. D:\Downloads\ExtractedPatches">
-      <button id="browseOutputFolderBtn" type="button" class="secondary">Browse&hellip;</button>
     </div>
   </div>
   <div class="field-row">
@@ -53,7 +46,7 @@
     <button id="saveConfigBtn" type="button" class="secondary">Save Settings Only</button>
     <button id="scanBtn" type="button">Save &amp; Rescan Folder</button>
   </div>
-  <p class="muted-note">Rescan always saves your current settings first, so an extension you just added/removed (or a changed scan folder) is never scanned against a stale, unsaved value. Use "Save Settings Only" when you just want to update the extraction destination without kicking off a full rescan.</p>
+  <p class="muted-note">Rescan always saves your current settings first, so an extension you just added/removed (or a changed scan folder) is never scanned against a stale, unsaved value. Use "Save Settings Only" to save extension changes without kicking off a full rescan.</p>
   <p class="reminder-note">💡 <strong>Remember:</strong> the index only updates when you rescan — if you've added or removed any mod archives since the last scan, click <strong>Save &amp; Rescan Folder</strong> again, or search results won't reflect what's actually in your downloads folder.</p>
   <div id="scanProgress" class="scan-progress hidden">
     <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>

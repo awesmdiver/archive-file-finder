@@ -8,6 +8,7 @@ const state = {
   currentUnits: [], // top-level rows for the active mode: file groups, or archive rows
   pageSize: 25, // 10 | 25 | 50 | 'all'
   page: 1,
+  stats: null, // last-loaded /api/stats response
 };
 
 const el = (id) => document.getElementById(id);
@@ -61,6 +62,7 @@ function escapeHtml(s) {
 
 async function loadStats() {
   const stats = await api('/api/stats');
+  state.stats = stats;
   el('statsMain').textContent =
     `${stats.archiveCount.toLocaleString()} archives indexed · ${stats.fileCount.toLocaleString()} matched files · ` +
     `last scan: ${fmtDate(stats.lastScanned)}`;
@@ -76,7 +78,6 @@ async function loadStats() {
 async function loadConfig() {
   state.config = await api('/api/config');
   el('scanFolder').value = state.config.scanFolder;
-  el('outputFolder').value = state.config.outputFolder;
   renderExtensionTags();
 }
 
@@ -135,13 +136,11 @@ async function pickFolderInto(inputId, btn) {
 }
 
 el('browseScanFolderBtn').addEventListener('click', (e) => pickFolderInto('scanFolder', e.target));
-el('browseOutputFolderBtn').addEventListener('click', (e) => pickFolderInto('outputFolder', e.target));
 el('browseExtractDestBtn').addEventListener('click', (e) => pickFolderInto('extractDest', e.target));
 
 async function saveConfig() {
   const payload = {
     scanFolder: el('scanFolder').value.trim(),
-    outputFolder: el('outputFolder').value.trim(),
     extensions: state.config.extensions,
   };
   state.config = await api('/api/config', {
@@ -223,6 +222,16 @@ el('searchBtn').addEventListener('click', () => {
 async function runSearch() {
   const q = el('searchBox').value.trim();
   el('archiveTreePanel').classList.add('hidden');
+
+  if (state.stats && state.stats.archiveCount === 0) {
+    state.currentUnits = [];
+    el('resultsTable').classList.add('hidden');
+    el('archiveResultsList').classList.add('hidden');
+    el('paginationBar').classList.add('hidden');
+    el('noResults').classList.remove('hidden');
+    el('noResults').textContent = 'No data available — nothing has been scanned yet. Go to Settings and click "Save & Rescan Folder" first.';
+    return;
+  }
 
   if (!q) {
     state.currentUnits = [];
@@ -580,6 +589,7 @@ el('extractConfirmBtn').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items, outputFolder, flat }),
     });
+    state.config.outputFolder = res.outputFolder; // remember for next time the dialog opens
     resultsEl.innerHTML = res.results.map((r, i) => {
       const label = labels[i] ? labels[i].fileName : r.key;
       return r.ok
@@ -689,4 +699,5 @@ function reportFailedAction(results, okLabel) {
 (async function init() {
   await loadConfig();
   await loadStats();
+  runSearch(); // shows the "no data yet" message immediately if nothing's been scanned
 })();

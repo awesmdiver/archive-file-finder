@@ -65,16 +65,18 @@ Only Task Manager / `taskkill /F` skip that handling.
 
 ## First-time setup
 
-Nothing is pre-filled — a fresh clone has no scan folder, no extraction
-destination, and no indexed data (the local database lives in `data/`,
-which is gitignored and never shipped). On first launch:
+Nothing is pre-filled — a fresh clone has no scan folder and no indexed
+data (the local database lives in `data/`, which is gitignored and never
+shipped). On first launch:
 
 1. Open **Settings**. Click **Browse…** next to *Scan folder* and pick the
-   folder where your mod manager keeps downloaded archives (Vortex's
-   default is inside its install folder, unless you changed it — Mod
-   Organizer 2 has its own configurable downloads folder). Click
-   **Browse…** next to *Default extraction destination* and pick (or
-   create) a folder to extract files into.
+   folder where your mod manager keeps **downloaded** archives — the still-
+   zipped originals, not wherever it stages/extracts installed mods (Vortex's
+   default downloads folder is inside its install folder, unless you changed
+   it; Mod Organizer 2 has its own configurable downloads folder, separate
+   from its per-profile mods/staging folder). Pointing this at a staging or
+   mods folder won't find anything, since those hold already-extracted
+   files, not archives.
 2. Leave *File extensions to index* as `.esp`, or add more (`.esl`, `.esm`,
    etc.) — see "Changing the extension list later" below.
 3. Click **Save & Rescan Folder**. For a few thousand archives this takes a
@@ -82,17 +84,20 @@ which is gitignored and never shipped). On first launch:
    its compressed data, so it's fast — but there are a lot of archives to
    get through).
 
+The extraction destination isn't set here — see the **Extract Selected**
+step below; it lives in exactly one place (the extract dialog) so it can
+never go out of sync with itself.
+
 ## Usage
 
-1. **Settings panel**: the scan folder, the default extraction destination,
-   and the list of extensions to index. Each has a **Browse…** button that
-   opens a native folder picker instead of typing a path by hand.
+1. **Settings panel**: the scan folder and the list of extensions to
+   index. Each has a **Browse…** button that opens a native folder picker
+   instead of typing a path by hand.
    - **Save & Rescan Folder** saves whatever's currently in the form, then
      rescans against it — this is the one you'll normally use, since it
      can never scan against a stale, unsaved value.
    - **Save Settings Only** saves without rescanning, for when you're just
-     changing the extraction destination and don't want to kick off a full
-     rescan for no reason.
+     changing extensions and don't want to kick off a full rescan.
    Rescans are *incremental*: new archives on disk get indexed, archives
    whose size/date haven't changed since the last scan are skipped (fast),
    and archives deleted from the downloads folder are removed from the
@@ -116,15 +121,17 @@ which is gitignored and never shipped). On first launch:
    want **Select All** to apply across every match instead of just the
    current page.
 3. Check the files you want (in either mode — the tree lets you select any
-   file, any extension), or **Select All**, then **Extract Selected**. In
-   the dialog, **"Extract directly into this folder"** is checked by
-   default — every selected file lands flat in the destination folder
-   (auto-renamed `(2)`, `(3)`, etc. on a name collision), which is what you
-   want when collecting patches into one folder to package as a single
-   Vortex-installable mod. Uncheck it to extract each file into
-   `<destination>\<archive name>\<file>` instead (a subfolder per source
-   archive) if you'd rather keep track of which archive each file came
-   from. The destination field also has its own **Browse…** button.
+   file, any extension), or **Select All**, then **Extract Selected**. The
+   dialog's **Destination folder** has its own **Browse…** button and
+   remembers whatever you used last time (blank the first time) — there's
+   no separate "default" setting elsewhere to keep in sync with it.
+   **"Extract directly into this folder"** is checked by default — every
+   selected file lands flat in the destination folder (auto-renamed `(2)`,
+   `(3)`, etc. on a name collision), which is what you want when collecting
+   patches into one folder to package as a single Vortex-installable mod.
+   Uncheck it to extract each file into `<destination>\<archive
+   name>\<file>` instead (a subfolder per source archive) if you'd rather
+   keep track of which archive each file came from.
 
 ## Dark mode
 

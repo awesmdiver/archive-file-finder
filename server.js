@@ -185,7 +185,10 @@ const server = http.createServer(async (req, res) => {
       const cfg = db.getConfig();
       const outputFolder = (body.outputFolder && String(body.outputFolder).trim()) || cfg.outputFolder;
       if (!outputFolder) {
-        return sendJson(res, 400, { error: 'No destination folder set. Choose one in the extract dialog or in Settings.' });
+        return sendJson(res, 400, { error: 'No destination folder set. Choose one in the extract dialog.' });
+      }
+      if (outputFolder !== cfg.outputFolder) {
+        db.setConfig({ outputFolder }); // remember as the default for next time the dialog opens
       }
       const exePath = sevenzip.findSevenZip();
       const results = [];
