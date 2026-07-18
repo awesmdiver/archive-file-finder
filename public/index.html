@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Archive File Finder</title>
+<link rel="stylesheet" href="/style.css">
+<script>
+  // Applied before the page renders so a stored "light" choice doesn't
+  // flash dark-then-light. Dark is the default when nothing is stored.
+  (function () {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
+</head>
+<body>
+<header>
+  <h1>Archive File Finder</h1>
+  <div class="header-right">
+    <div id="stats" class="stats">
+      <span id="statsMain">Loading...</span>
+      <a href="#" id="statsErrorLink" class="stats-error-link hidden"></a>
+    </div>
+    <button id="themeToggleBtn" type="button" class="theme-toggle"></button>
+  </div>
+</header>
+
+<section class="panel" id="settingsPanel">
+  <h2>Settings</h2>
+  <div class="field-row">
+    <label for="scanFolder">Scan folder (compressed mods)</label>
+    <div class="path-row">
+      <input type="text" id="scanFolder" placeholder="e.g. D:\Downloads\SkyrimSE">
+      <button id="browseScanFolderBtn" type="button" class="secondary">Browse&hellip;</button>
+    </div>
+  </div>
+  <div class="field-row">
+    <label for="outputFolder">Default extraction destination</label>
+    <div class="path-row">
+      <input type="text" id="outputFolder" placeholder="e.g. D:\Downloads\ExtractedPatches">
+      <button id="browseOutputFolderBtn" type="button" class="secondary">Browse&hellip;</button>
+    </div>
+  </div>
+  <div class="field-row">
+    <label for="extensions">File extensions to index</label>
+    <div id="extensionTags" class="tag-list"></div>
+    <div class="ext-add-row">
+      <input type="text" id="newExtension" placeholder=".esp">
+      <button id="addExtensionBtn" type="button">Add</button>
+    </div>
+  </div>
+  <div class="field-row buttons">
+    <button id="saveConfigBtn" type="button" class="secondary">Save Settings Only</button>
+    <button id="scanBtn" type="button">Save &amp; Rescan Folder</button>
+  </div>
+  <p class="muted-note">Rescan always saves your current settings first, so an extension you just added/removed (or a changed scan folder) is never scanned against a stale, unsaved value. Use "Save Settings Only" when you just want to update the extraction destination without kicking off a full rescan.</p>
+  <p class="reminder-note">💡 <strong>Remember:</strong> the index only updates when you rescan — if you've added or removed any mod archives since the last scan, click <strong>Save &amp; Rescan Folder</strong> again, or search results won't reflect what's actually in your downloads folder.</p>
+  <div id="scanProgress" class="scan-progress hidden">
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    <div id="progressText" class="progress-text"></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Search</h2>
+  <div class="field-row mode-row" role="radiogroup" aria-label="Search mode">
+    <label class="mode-option">
+      <input type="radio" name="searchMode" value="files" checked>
+      Find individual files <span class="mode-hint">(searches indexed file names, e.g. .esp)</span>
+    </label>
+    <label class="mode-option">
+      <input type="radio" name="searchMode" value="archives">
+      Display Archive <span class="mode-hint">(searches archive names, browse full contents)</span>
+    </label>
+  </div>
+  <div class="field-row search-row">
+    <input type="text" id="searchBox" placeholder="e.g. lanterns of skyrim" autocomplete="off">
+    <button id="searchBtn" type="button">Search</button>
+  </div>
+  <div class="field-row buttons">
+    <button id="selectAllBtn" type="button">Select All</button>
+    <button id="clearSelectionBtn" type="button">Clear Selection</button>
+    <span class="spacer"></span>
+    <span id="selectionCount">0 selected</span>
+    <button id="extractBtn" type="button">Extract Selected&hellip;</button>
+  </div>
+
+  <div id="paginationBar" class="field-row buttons hidden">
+    <span>Show:</span>
+    <div class="page-size-group">
+      <button type="button" class="page-size-btn" data-size="10">10</button>
+      <button type="button" class="page-size-btn" data-size="25">25</button>
+      <button type="button" class="page-size-btn" data-size="50">50</button>
+      <button type="button" class="page-size-btn" data-size="all">All</button>
+    </div>
+    <span class="spacer"></span>
+    <button id="prevPageBtn" type="button" class="secondary">&larr; Prev</button>
+    <span id="pageIndicator"></span>
+    <button id="nextPageBtn" type="button" class="secondary">Next &rarr;</button>
+  </div>
+
+  <table id="resultsTable">
+    <thead>
+      <tr>
+        <th class="col-check"></th>
+        <th>File</th>
+        <th>Ext</th>
+        <th>Found In (Archive)</th>
+      </tr>
+    </thead>
+    <tbody id="resultsBody"></tbody>
+  </table>
+
+  <ul id="archiveResultsList" class="archive-results hidden"></ul>
+
+  <div id="noResults" class="empty-state hidden">No matches yet. Type a mod name above.</div>
+
+  <div id="archiveTreePanel" class="archive-tree-panel hidden">
+    <div class="archive-tree-header">
+      <button id="closeTreeBtn" type="button" class="secondary">&larr; Back to results</button>
+      <strong id="treeArchiveName"></strong>
+    </div>
+    <div id="archiveTreeBody" class="archive-tree-body"></div>
+  </div>
+</section>
+
+<div id="failedDialog" class="modal hidden">
+  <div class="modal-content">
+    <h2>Archives That Failed To Read</h2>
+    <p class="muted-note">These couldn't be opened by 7-Zip (usually a corrupt or incomplete download). You can stop tracking them (keeps the file on disk) or delete the file from disk outright.</p>
+    <div class="field-row buttons">
+      <button id="failedSelectAllBtn" type="button" class="secondary">Select All</button>
+      <span class="spacer"></span>
+      <span id="failedSelectionCount">0 selected</span>
+    </div>
+    <ul id="failedList" class="failed-list"></ul>
+    <div class="field-row buttons">
+      <button id="failedCloseBtn" type="button" class="secondary">Close</button>
+      <span class="spacer"></span>
+      <button id="failedUntrackBtn" type="button">Remove From Index</button>
+      <button id="failedDeleteBtn" type="button" class="danger">Delete From Disk&hellip;</button>
+    </div>
+    <div id="failedResults" class="extract-results"></div>
+  </div>
+</div>
+
+<div id="extractDialog" class="modal hidden">
+  <div class="modal-content">
+    <h2>Extract Selected Files</h2>
+    <p><span id="extractCount">0</span> file(s) selected.</p>
+    <label for="extractDest">Destination folder</label>
+    <div class="path-row">
+      <input type="text" id="extractDest">
+      <button id="browseExtractDestBtn" type="button" class="secondary">Browse&hellip;</button>
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="extractFlat" checked>
+      Extract directly into this folder (no per-archive subfolders) &mdash; needed to build a single Vortex-installable patch mod
+    </label>
+    <div class="field-row buttons">
+      <button id="extractCancelBtn" type="button">Cancel</button>
+      <button id="extractConfirmBtn" type="button">Extract</button>
+    </div>
+    <div id="extractResults" class="extract-results"></div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "archive-file-finder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Finds which of your downloaded (still-zipped) Skyrim mod archives contain patches for a mod you've installed, and lets you extract just those files without unpacking everything by hand.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "license": "MIT",
+  "author": "awesmdiver",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/awesmdiver/archive-file-finder.git"
+  },
+  "homepage": "https://github.com/awesmdiver/archive-file-finder#readme",
+  "bugs": {
+    "url": "https://github.com/awesmdiver/archive-file-finder/issues"
+  },
+  "keywords": [
+    "skyrim",
+    "vortex",
+    "mod-organizer",
+    "mod-manager",
+    "7-zip",
+    "archive-search"
+  ]
+}
