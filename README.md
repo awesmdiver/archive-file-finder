@@ -1,181 +1,148 @@
+![License](https://img.shields.io/badge/License-MIT-yellow.svg) ![Platform](https://img.shields.io/badge/Platform-Windows-blue.svg)
+
 # Archive File Finder
 
-Finds which of your downloaded (still-zipped) Skyrim mod archives contain a
-patch for a mod you just installed — without extracting every archive by
-hand. Scans every `.zip` / `.7z` / `.rar` in a folder you point it at (your
-Vortex/Mod Organizer downloads folder, or any folder of mod archives), lists
-each archive's contents via 7-Zip (no full extraction needed), records every
-file matching a configurable extension list (default just `.esp`) into a
-local SQLite database, and lets you search across all of them by mod name.
-Selected files can then be extracted straight from their source archive into
-a destination folder of your choice.
+> **Find which of your downloaded (still-zipped) mod archives contain a patch you need — without extracting a single one by hand.**
 
-Example: install *Lanterns of Skyrim II*, then search "lanterns of skyrim"
-— every patch `.esp` for it sitting inside any downloaded archive (e.g.
-`COTN Dawnstar - Lanterns of Skyrim II Patch.esp` inside `COTN Dawnstar
-Patch Collection.7z`) shows up, ready to select and extract.
+---
 
-## Requirements
+## ⚡ Overview
 
-- Windows (the folder picker and the bundled 7-Zip path both assume it;
-  everything else is plain Node.js).
-- Node.js 22.5+ (uses the built-in `node:sqlite` module — no `npm install`
-  needed, zero dependencies) and 7-Zip. **Don't have these? See below —
-  `install.bat` gets them for you.**
+You just installed a mod and need its patch, but the patch is buried inside one of dozens (or
+thousands) of `.zip`/`.7z`/`.rar` files sitting in your downloads folder — and you have no way to
+search inside them without extracting each one. Archive File Finder solves that: it lists every
+archive's contents up front (no extraction needed to look), remembers what it found, and lets you
+search across everything by mod name. Selected files come straight out of their source archive
+into a folder you choose.
 
-## Setup and running (no command line needed)
+**Example:** install *Lanterns of Skyrim II*, then search "lanterns of skyrim" — every matching
+patch `.esp` sitting inside any downloaded archive shows up (e.g. `COTN Dawnstar - Lanterns of
+Skyrim II Patch.esp`, buried inside `COTN Dawnstar Patch Collection.7z`), ready to select and
+extract.
 
-Three double-clickable files, no PowerShell or Node.js knowledge required:
+### 📋 At a Glance
 
-1. **`install.bat`** — checks whether Node.js and 7-Zip (both required) are
-   already on your computer, plus PowerShell 7 (optional — see "Dark mode"
-   below). If anything's missing, it offers to install it for you (via
-   [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/),
-   which ships with modern Windows) — it always asks before installing
-   anything. If winget isn't available on your computer, it opens the
-   official download page instead so you can install it by hand. Safe to
-   run again any time; it only reports what's already installed if nothing's
-   missing.
-2. **`start.bat`** — launches the app and opens it in your browser at
-   http://localhost:4173. A console window stays open while it runs — that
-   window staying open **is** how you know the server is running; don't
-   close it while you're using the app. If Node.js or 7-Zip aren't
-   installed yet, it'll tell you to run `install.bat` first instead of
-   failing with a cryptic error.
-3. **`stop.bat`** — shuts the server down cleanly (equivalent to closing
-   the `start.bat` window, but usable from anywhere). Prints what happened
-   and waits for a key press so the window doesn't flash and disappear
-   before you can read it.
+| Feature | Details |
+| :--- | :--- |
+| **Requirements** | Windows; Node.js 22.5+ and 7-Zip (`install.bat` gets both for you) |
+| **Performance Impact** | Indexes by reading archive headers only — no extraction needed to search |
+| **Safety** | Never touches your installed mods — only reads your downloads folder; its own database is local and gitignored |
+| **Compatibility** | Any mod manager (Vortex, Mod Organizer 2) or just a plain folder of archives |
 
-All three are thin wrappers around the `.ps1` scripts of the same name
-(`install.ps1`, `start.ps1`, `stop.ps1`) — the `.bat` files just run them
-with PowerShell's execution-policy restriction bypassed for that one call,
-so double-clicking works without anyone needing to change a system setting
-first. If you're comfortable with PowerShell directly, `powershell -File
-start.ps1` works the same way.
+---
 
-**Why a clean stop matters**: a clean shutdown flushes SQLite's write-ahead
-log to disk; an unclean kill (Task Manager, `taskkill /F`) can drop the last
-few not-yet-checkpointed writes. `stop.bat`, Ctrl+C in the console window,
-and clicking the window's **X** button are all equally clean — closing the
-window sends Windows' `SIGHUP` to the server rather than just yanking it,
-and it's handled the same as Ctrl+C (verified: watched the database's
-write-ahead-log files get cleanly merged away after clicking X for real).
-Only Task Manager / `taskkill /F` skip that handling.
+## ✨ Key Features
 
-## First-time setup
+* **Finds patches without extracting anything:** Lists every archive's contents via 7-Zip up
+  front, so you can search before ever unpacking a single file.
+* **Two ways to search:** *Find individual files* matches file names directly (e.g. the `.esp`
+  itself); *Display Archive* matches archive names and lets you browse one's entire contents live,
+  including subfolders.
+* **Rescans are incremental:** New archives get indexed, unchanged ones are skipped, and archives
+  you've deleted get dropped from the index automatically — only a first scan or a newly-added file
+  extension takes a full pass.
+* **Extract exactly what you picked:** Select files across any number of archives and pull them
+  straight into one destination folder, auto-renaming on a name collision — perfect for collecting
+  scattered patches into a single Vortex-installable mod.
+* **Corrupt archives don't get silently skipped:** If 7-Zip can't open a file, it's flagged with an
+  error you can review, then either dropped from the index or deleted from disk outright.
+* **Dark mode by default,** with a toggle that remembers your choice.
 
-Nothing is pre-filled — a fresh clone has no scan folder and no indexed
-data (the local database lives in `data/`, which is gitignored and never
-shipped). On first launch:
+---
 
-1. Open **Settings**. Click **Browse…** next to *Scan folder* and pick the
-   folder where your mod manager keeps **downloaded** archives — the still-
-   zipped originals, not wherever it stages/extracts installed mods (Vortex's
-   default downloads folder is inside its install folder, unless you changed
-   it; Mod Organizer 2 has its own configurable downloads folder, separate
-   from its per-profile mods/staging folder). Pointing this at a staging or
-   mods folder won't find anything, since those hold already-extracted
-   files, not archives.
-2. Leave *File extensions to index* as `.esp`, or add more (`.esl`, `.esm`,
-   etc.) — see "Changing the extension list later" below.
-3. Click **Save & Rescan Folder**. For a few thousand archives this takes a
-   few minutes the first time (7-Zip only reads each archive's header, not
-   its compressed data, so it's fast — but there are a lot of archives to
-   get through).
+## 📦 Getting Started
 
-The extraction destination isn't set here — see the **Extract Selected**
-step below; it lives in exactly one place (the extract dialog) so it can
-never go out of sync with itself.
+1. **Run `install.bat`.** It checks for Node.js and 7-Zip (both required) and offers to install
+   anything missing via [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
+   — it always asks first. Safe to run again any time.
+2. **Run `start.bat`.** It launches the app and opens your browser to it automatically. A console
+   window stays open while it runs — that's expected, and it's how you know the server's up.
+3. **Open Settings** and click **Browse…** next to *Scan folder* — point it at your mod manager's
+   **downloads** folder (the still-zipped originals), not wherever it stages or installs mods.
+4. **Click "Save & Rescan Folder."** For a few thousand archives, the first scan takes a few
+   minutes; every rescan after that is much faster.
 
-## Usage
+> [!TIP]
+> Prefer PowerShell directly? `.ps1` versions of every script (`install.ps1`, `start.ps1`,
+> `stop.ps1`) work exactly the same way as their `.bat` wrappers.
 
-1. **Settings panel**: the scan folder and the list of extensions to
-   index. Each has a **Browse…** button that opens a native folder picker
-   instead of typing a path by hand.
-   - **Save & Rescan Folder** saves whatever's currently in the form, then
-     rescans against it — this is the one you'll normally use, since it
-     can never scan against a stale, unsaved value.
-   - **Save Settings Only** saves without rescanning, for when you're just
-     changing extensions and don't want to kick off a full rescan.
-   Rescans are *incremental*: new archives on disk get indexed, archives
-   whose size/date haven't changed since the last scan are skipped (fast),
-   and archives deleted from the downloads folder are removed from the
-   index automatically.
-2. Pick a search mode, then type a mod name in **Search** (or press Enter,
-   or click **Search**):
-   - **Find individual files** — matches indexed file names only (e.g. the
-     `.esp` itself), not the archive it's sitting in. Searching "lanterns
-     of skyrim" returns only patches whose own file name mentions it, not
-     every file inside an archive that happens to be named "Lanterns Of
-     Skyrim II - FOMOD.7z". If an archive has more than one matching file,
-     the results collapse into a single "N matching files" row — its
-     checkbox selects/deselects all of them at once, or click the text to
-     expand and pick individual files within it.
-   - **Display Archive** — matches archive names instead. Click a result to
-     browse that archive's *entire* contents live (via 7-Zip, not the
-     index), including subfolders, as a collapsible tree — useful when you
-     know the archive but want to see everything inside it, not just the
-     tracked extensions.
-   Results are paginated (10 / 25 / 50 / All per page) — use **All** if you
-   want **Select All** to apply across every match instead of just the
-   current page.
-3. Check the files you want (in either mode — the tree lets you select any
-   file, any extension), or **Select All**, then **Extract Selected**. The
-   dialog's **Destination folder** has its own **Browse…** button and
-   remembers whatever you used last time (blank the first time) — there's
-   no separate "default" setting elsewhere to keep in sync with it.
-   **"Extract directly into this folder"** is checked by default — every
-   selected file lands flat in the destination folder (auto-renamed `(2)`,
-   `(3)`, etc. on a name collision), which is what you want when collecting
-   patches into one folder to package as a single Vortex-installable mod.
-   Uncheck it to extract each file into `<destination>\<archive
-   name>\<file>` instead (a subfolder per source archive) if you'd rather
-   keep track of which archive each file came from.
+---
 
-## Dark mode
+## ⚠️ Important Notes
 
-The page itself defaults to dark regardless of your browser/OS setting — a
-toggle button in the top-right corner (🌙 Dark / ☀️ Light) switches it, and
-your choice is remembered.
+> [!WARNING]
+> Always stop the server with `stop.bat`, Ctrl+C, or the console window's **X** button — never
+> Task Manager or `taskkill /F`. A clean stop flushes the last few database writes to disk; a hard
+> kill can drop them.
 
-The native **folder-browse popup** (opened by the Browse… buttons) is a
-separate Windows dialog outside the browser's control. It always follows
-Windows' own system-wide dark/light setting (Settings → Personalization →
-Colors) — **not** this page's toggle, and there's no way to override that
-per-app; the two are independent. This only works at all with **PowerShell
-7** installed — without it, the folder picker falls back to a decades-old
-Windows dialog that's always light, full stop, regardless of your Windows
-theme. `install.bat` offers to install PowerShell 7 for you (optional —
-everything else works fine without it, the popup will just always be
-light-themed).
+> [!NOTE]
+> Point the scan folder at your **downloads** folder specifically — a staging or installed-mods
+> folder holds already-extracted files, not archives, so nothing will match.
 
-## Archives that fail to read
+> [!NOTE]
+> Results are shown a page at a time. **Select All** only grabs what's on the current page —
+> switch the page-size dropdown to **All** first if you want it to cover every match.
 
-If 7-Zip can't open an archive (a corrupt or incomplete download), it's
-recorded with an error instead of being silently skipped — the header
-shows **"N archive(s) failed to read"** in red, as a link. Click it to see
-which archives and why, then either:
+---
 
-- **Remove From Index** — stops tracking it; the file stays on disk.
-- **Delete From Disk** — deletes the file itself (after a confirmation
-  prompt) and removes it from the index in the same step.
+## ❓ Frequently Asked Questions
 
-## Changing the extension list later
+* **Q: Do I need to install anything myself first?**
+  > **No.** `install.bat` checks for Node.js and 7-Zip and offers to install anything missing —
+  > it always asks before installing anything.
 
-If you add a new extension (say `.esm`) after already scanning, click
-**Save & Rescan Folder** again. The scanner tracks which extensions each
-archive was already scanned for — since none of them have `.esm` coverage
-yet, *every* archive gets re-listed against the current extension list
-(this one rescan will take as long as the original full scan), and
-previously-unindexed `.esm` matches get picked up. Once that pass is done,
-subsequent rescans go back to fast/incremental. Removing an extension
-doesn't need a rescan at all — already-indexed files for it just stop
-showing up in search (search always filters by the currently configured
-list), nothing is deleted.
+---
 
-## Data
+* **Q: Does this touch my installed mods?**
+  > **No.** It only reads whatever folder you point it at (your downloads folder) and its own
+  > local database. Nothing about your installed/staged mods is touched.
 
-- `data/archive.db` — SQLite database (archives, matched files, settings).
-  Gitignored; delete it (or the whole `data/` folder) to force a full clean
-  rescan, e.g. if you're handing this off to someone else's machine.
+---
+
+* **Q: I added a new file extension to track — do I need to do anything special?**
+  > **Just click "Save & Rescan Folder" again.** That one rescan takes as long as the original
+  > full scan, since every archive needs checking against the new extension; every rescan after
+  > that goes back to being fast.
+
+---
+
+* **Q: What happens if an archive is corrupt or incomplete?**
+  > **It's flagged, not skipped.** A "N archive(s) failed to read" link appears so you can review
+  > which ones and why, then choose to stop tracking it or delete it from disk.
+
+---
+
+* **Q: I clicked "Select All" but only some of my matches got extracted — what happened?**
+  > **Select All only grabs the current page.** Results show 10/25/50 at a time by default —
+  > switch the page-size dropdown to **All** first if you want Select All to cover every match,
+  > not just what's currently visible.
+
+---
+
+* **Q: I'm moving this to a new machine — do I need to bring anything with me?**
+  > **No.** The database (`data/archive.db`) is local and gitignored — delete it (or the whole
+  > `data/` folder) any time to force a clean rescan from scratch.
+
+---
+
+* **Q: Why is the folder-browse popup always light-themed?**
+  > **It needs PowerShell 7.** Without it, the folder picker falls back to an old Windows dialog
+  > that's always light. `install.bat` offers to install PowerShell 7 for you — everything else
+  > works fine without it either way.
+
+---
+
+## 🛠️ Technical Details & Contributions
+
+Looking for the SQLite schema, the incremental-rescan logic, or why it shells out to `7z.exe`
+instead of a JS unzip library? Check out [`TECHNICAL.md`](TECHNICAL.md).
+
+---
+
+## 🤝 Credits
+
+* **[7-Zip](https://www.7-zip.org/)** (Igor Pavlov) — powers archive listing/extraction; also
+  handles `.rar`, which most pure-JS archive libraries don't support.
+* **Node.js** — the built-in `node:sqlite` module means this ships with zero npm dependencies.
+
+Published publicly at [github.com/awesmdiver/archive-file-finder](https://github.com/awesmdiver/archive-file-finder) (MIT).
